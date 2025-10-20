@@ -1,0 +1,126 @@
+
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🌦 新竹天气小工具</title>
+<style>
+html, body {
+  background-color: #0e0e0e !important;
+  color: #f1f1f1 !important;
+  font-family: "Noto Sans TC", sans-serif;
+  margin: 20px;
+  line-height: 1.6;
+}
+h1, h2 {
+  text-align: center;
+}
+h1 {
+  color: #00d4ff;
+}
+.update-time {
+  text-align: center;
+  color: #aaa;
+  font-size: 0.9em;
+}
+.weather {
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 15px;
+  margin: 15px 0;
+  background: #1a1a1a;
+}
+.btn {
+  display: block;
+  background: #00d4ff;
+  color: #000;
+  padding: 10px;
+  text-align: center;
+  border-radius: 8px;
+  font-weight: bold;
+  margin-top: 20px;
+  text-decoration: none;
+}
+.btn:hover {
+  background: #00b3e6;
+}
+</style>
+</head>
+<body>
+
+<h1>🌦 新竹未来天气趋势</h1>
+<p class="update-time">最后更新：<span id="update-time"></span></p>
+
+<div id="weather"></div>
+
+<a href="#" class="btn" onclick="updateWeather()">🔄 更新天气</a>
+
+<script>
+async function updateWeather() {
+  document.getElementById('weather').innerHTML = "正在抓取天气数据...";
+  try {
+    const res = await fetch("https://api.open-meteo.com/v1/forecast?latitude=24.75&longitude=121.00&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FTaipei");
+    const data = await res.json();
+    const days = data.daily.time;
+    const tmax = data.daily.temperature_2m_max;
+    const tmin = data.daily.temperature_2m_min;
+    const rain = data.daily.precipitation_probability_max;
+
+    let html = "";
+    for (let i = 0; i < days.length; i++) {
+      html += `
+        <div class="weather">
+          <b>📅 日期：</b>${days[i]}<br>
+          🌡️ 温度：${tmin[i]}°C ~ ${tmax[i]}°C<br>
+          🌧️ 降雨机率：${rain[i]}%
+        </div>
+      `;
+    }
+    document.getElementById('weather').innerHTML = html;
+    document.getElementById('update-time').innerText = new Date().toLocaleString();
+  } catch (err) {
+    document.getElementById('weather').innerHTML = "❌ 无法取得天气资料，请检查网络连接。";
+  }
+}
+updateWeather();
+</script>
+
+<h2>🌡️ 实时气象资讯</h2>
+<div id="current-weather" class="weather">
+  正在抓取实时气象数据...
+</div>
+
+<script>
+async function updateCurrentWeather() {
+  const currentDiv = document.getElementById('current-weather');
+  currentDiv.innerHTML = "正在抓取实时气象数据...";
+  try {
+    const res = await fetch(
+      "https://api.open-meteo.com/v1/forecast?latitude=24.75&longitude=121.00&current_weather=true&hourly=relativehumidity_2m,uv_index,visibility,pressure_msl"
+    );
+    const data = await res.json();
+    const cw = data.current_weather;
+    const rh = data.hourly.relativehumidity_2m[0]; // 当前湿度
+    const uv = data.hourly.uv_index[0];            // 当前紫外线
+    const vis = data.hourly.visibility[0];        // 当前能见度
+    const pres = data.hourly.pressure_msl[0];     // 当前气压
+
+    currentDiv.innerHTML = `
+      <div><b>🌧️ 六小时降雨展望：</b>${cw.precipitation ?? 0}% （降雨机率）</div>
+      <div><b>☀️ 紫外线：</b>${uv}（0 很弱，0~2 弱，3~5 中，6~7 强，8~10 很强，11+ 极强）</div>
+      <div><b>🌡️ 体感温度：</b>${cw.temperature}°C（体感舒适度）</div>
+      <div><b>💧 湿度：</b>${rh}%（空气湿度）</div>
+      <div><b>🌬️ 风向 / 风速：</b>${cw.winddirection}° / ${cw.windspeed} m/s（风向°，风速 米/秒）</div>
+      <div><b>🧭 气压：</b>${pres} hPa（大气压力）</div>
+      <div><b>👁️ 能见度：</b>${(vis/1000).toFixed(1)} km（可见范围）重点：回温</div>
+    `;
+  } catch (err) {
+    currentDiv.innerHTML = "❌ 无法取得实时气象数据，请检查网络连接。";
+  }
+}
+updateCurrentWeather();
+</script>
+
+</body>
+</html>
